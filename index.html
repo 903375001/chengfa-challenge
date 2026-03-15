@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>乘法口诀挑战 - 小学二年级</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#FF9800',
+                        secondary: '#FFC107',
+                        success: '#4CAF50',
+                        danger: '#F44336',
+                        light: '#FFF8E1',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap');
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+        .bounce {
+            animation: bounce 0.5s ease;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        .shake {
+            animation: shake 0.5s ease;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+        .fade-in {
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .gradient-bg {
+            background: linear-gradient(135deg, #FFF8E1 0%, #FFECB3 50%, #FFE082 100%);
+        }
+        .card-shadow {
+            box-shadow: 0 10px 40px rgba(255, 152, 0, 0.2);
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen">
+    <div id="app" class="container mx-auto px-4 py-6 max-w-6xl">
+        <header class="text-center mb-6">
+            <h1 class="text-4xl font-bold text-primary mb-2">乘法口诀挑战</h1>
+            <p class="text-gray-600">小学二年级专属</p>
+        </header>
+
+        <div id="timer-container" class="hidden fixed top-4 right-4 bg-white rounded-full px-6 py-3 card-shadow z-50">
+            <span class="text-2xl font-bold text-primary">⏱️ <span id="timer">00.0</span> 秒</span>
+        </div>
+
+        <div class="flex flex-col lg:flex-row gap-6">
+            <div class="flex-1">
+                <div id="welcome-screen" class="bg-white rounded-3xl p-8 card-shadow">
+                    <div class="text-center mb-8">
+                        <div class="text-8xl mb-4">🎯</div>
+                        <h2 class="text-2xl font-bold text-gray-800 mb-2">准备好了吗？</h2>
+                        <p class="text-gray-600">输入你的名字，开始挑战吧！</p>
+                    </div>
+                    <div class="max-w-md mx-auto">
+                        <label class="block text-gray-700 font-medium mb-2">你的名字</label>
+                        <input 
+                            type="text" 
+                            id="player-name" 
+                            class="w-full px-4 py-3 text-xl border-2 border-primary rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                            placeholder="请输入你的名字"
+                            maxlength="10"
+                        >
+                        <button 
+                            id="start-btn"
+                            class="w-full mt-4 bg-primary hover:bg-orange-500 text-white font-bold py-4 px-6 rounded-xl text-xl transition-all transform hover:scale-105"
+                        >
+                            开始挑战 🚀
+                        </button>
+                    </div>
+                    <div class="mt-8 text-center text-gray-500 text-sm">
+                        <p>📝 共 10 道乘法题</p>
+                        <p>⏱️ 计时精确到十分位秒</p>
+                        <p>🏆 答完查看排行榜</p>
+                    </div>
+                </div>
+
+                <div id="game-screen" class="hidden">
+                    <div class="bg-white rounded-3xl p-8 card-shadow">
+                        <div class="text-center mb-6">
+                            <div class="text-sm text-gray-500 mb-2">第 <span id="current-question">1</span> / 10 题</div>
+                            <div class="w-full bg-gray-200 rounded-full h-3">
+                                <div id="progress-bar" class="bg-primary h-3 rounded-full transition-all duration-300" style="width: 10%"></div>
+                            </div>
+                        </div>
+                        
+                        <div id="question-container" class="text-center py-8">
+                            <div class="text-6xl font-bold text-gray-800 mb-8" id="question">
+                                7 × 8 = ?
+                            </div>
+                            <div id="feedback" class="mb-4 h-8"></div>
+                            <input 
+                                type="number" 
+                                id="answer-input"
+                                class="w-48 text-center text-4xl font-bold border-4 border-primary rounded-2xl py-4 focus:outline-none focus:ring-2 focus:ring-primary"
+                                placeholder="?"
+                                autofocus
+                            >
+                            <div class="mt-6">
+                                <button 
+                                    id="submit-btn"
+                                    class="bg-success hover:bg-green-600 text-white font-bold py-3 px-12 rounded-xl text-xl transition-all transform hover:scale-105"
+                                >
+                                    提交答案 ✓
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="result-screen" class="hidden">
+                    <div class="bg-white rounded-3xl p-8 card-shadow">
+                        <div class="text-center mb-6">
+                            <div id="result-emoji" class="text-8xl mb-4">🎉</div>
+                            <h2 id="result-title" class="text-3xl font-bold text-gray-800 mb-2">太棒了！</h2>
+                            <p id="result-message" class="text-gray-600">你完成了挑战！</p>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4 max-w-md mx-auto mb-6">
+                            <div class="bg-light rounded-xl p-4 text-center">
+                                <div class="text-3xl font-bold text-primary" id="result-time">0.0</div>
+                                <div class="text-gray-600">用时（秒）</div>
+                            </div>
+                            <div class="bg-light rounded-xl p-4 text-center">
+                                <div class="text-3xl font-bold text-success" id="result-accuracy">0%</div>
+                                <div class="text-gray-600">正确率</div>
+                            </div>
+                        </div>
+
+                        <div class="mb-6">
+                            <h3 class="text-lg font-bold text-gray-800 mb-3">答题详情</h3>
+                            <div id="answer-details" class="space-y-2 max-h-60 overflow-y-auto"></div>
+                        </div>
+
+                        <div class="flex gap-4 justify-center">
+                            <button 
+                                id="retry-btn"
+                                class="bg-primary hover:bg-orange-500 text-white font-bold py-3 px-8 rounded-xl text-lg transition-all transform hover:scale-105"
+                            >
+                                再来一次 🔄
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:w-80">
+                <div class="bg-white rounded-3xl p-6 card-shadow sticky top-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                        <span class="mr-2">🏆</span> 排行榜
+                    </h2>
+                    <div id="leaderboard" class="space-y-2">
+                        <div class="text-center text-gray-500 py-8">
+                            <div class="text-4xl mb-2">📊</div>
+                            <p>暂无数据</p>
+                        </div>
+                    </div>
+                    <!-- 统计信息 -->
+                    <div id="stats-container" class="mt-6 pt-6 border-t border-gray-200">
+                        <h3 class="text-sm font-bold text-gray-600 mb-3 flex items-center">
+                            <span class="mr-1">📈</span> 统计信息
+                        </h3>
+                        <div class="grid grid-cols-3 gap-2 text-center">
+                            <div class="bg-light rounded-lg p-2">
+                                <div id="stats-players" class="text-lg font-bold text-primary">0</div>
+                                <div class="text-xs text-gray-500">参与人数</div>
+                            </div>
+                            <div class="bg-light rounded-lg p-2">
+                                <div id="stats-accuracy" class="text-lg font-bold text-success">0%</div>
+                                <div class="text-xs text-gray-500">平均正确率</div>
+                            </div>
+                            <div class="bg-light rounded-lg p-2">
+                                <div id="stats-time" class="text-lg font-bold text-secondary">0s</div>
+                                <div class="text-xs text-gray-500">平均用时</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * Supabase 配置
+         * 请将下面的配置替换为您自己的 Supabase 项目配置
+         */
+        const SUPABASE_URL = 'https://dsulshfiksegfcikwimb.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRzdWxzaGZpa3NlZ2ZjaWt3aW1iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1NTM5NTAsImV4cCI6MjA4OTEyOTk1MH0.EZpf24w8LYzbUXCVJa3Bnzjw89iMyPWvE5hGhdk3xZ0';
+
+        /**
+         * 初始化 Supabase 客户端
+         */
+        let supabaseClient = null;
+
+        /**
+         * 初始化数据库连接
+         * 强制使用 Supabase，不使用本地存储
+         */
+        function initDatabase() {
+            try {
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                subscribeToLeaderboard();
+            } catch (error) {
+                console.error('Supabase 连接失败:', error);
+            }
+        }
+
+        /**
+         * 游戏状态管理
+         */
+        const gameState = {
+            playerName: '',
+            currentQuestion: 0,
+            questions: [],
+            answers: [],
+            startTime: null,
+            timerInterval: null,
+            elapsedTime: 0
+        };
+
+        /**
+         * DOM 元素引用
+         */
+        const elements = {
+            welcomeScreen: document.getElementById('welcome-screen'),
+            gameScreen: document.getElementById('game-screen'),
+            resultScreen: document.getElementById('result-screen'),
+            timerContainer: document.getElementById('timer-container'),
+            timer: document.getElementById('timer'),
+            playerName: document.getElementById('player-name'),
+            startBtn: document.getElementById('start-btn'),
+            currentQuestion: document.getElementById('current-question'),
+            progressBar: document.getElementById('progress-bar'),
+            question: document.getElementById('question'),
+            feedback: document.getElementById('feedback'),
+            answerInput: document.getElementById('answer-input'),
+            submitBtn: document.getElementById('submit-btn'),
+            resultEmoji: document.getElementById('result-emoji'),
+            resultTitle: document.getElementById('result-title'),
+            resultMessage: document.getElementById('result-message'),
+            resultTime: document.getElementById('result-time'),
+            resultAccuracy: document.getElementById('result-accuracy'),
+            answerDetails: document.getElementById('answer-details'),
+            retryBtn: document.getElementById('retry-btn'),
+            leaderboard: document.getElementById('leaderboard')
+        };
+
+        /**
+         * 生成随机乘法题目
+         * @returns {Array} 包含10道不重复乘法题的数组
+         */
+        function generateQuestions() {
+            const questions = [];
+            const usedQuestions = new Set();
+
+            while (questions.length < 10) {
+                const a = Math.floor(Math.random() * 9) + 1;
+                const b = Math.floor(Math.random() * 9) + 1;
+                const key = `${a}×${b}`;
+                const reverseKey = `${b}×${a}`;
+
+                if (!usedQuestions.has(key) && !usedQuestions.has(reverseKey)) {
+                    usedQuestions.add(key);
+                    questions.push({ a, b, answer: a * b });
+                }
+            }
+
+            return questions;
+        }
+
+        /**
+         * 开始计时器
+         */
+        function startTimer() {
+            gameState.startTime = Date.now();
+            gameState.elapsedTime = 0;
+
+            gameState.timerInterval = setInterval(() => {
+                gameState.elapsedTime = (Date.now() - gameState.startTime) / 1000;
+                elements.timer.textContent = gameState.elapsedTime.toFixed(1);
+            }, 100);
+        }
+
+        /**
+         * 停止计时器
+         */
+        function stopTimer() {
+            if (gameState.timerInterval) {
+                clearInterval(gameState.timerInterval);
+                gameState.timerInterval = null;
+            }
+        }
+
+        /**
+         * 显示指定屏幕
+         * @param {string} screen - 屏幕名称: 'welcome', 'game', 'result'
+         */
+        function showScreen(screen) {
+            elements.welcomeScreen.classList.add('hidden');
+            elements.gameScreen.classList.add('hidden');
+            elements.resultScreen.classList.add('hidden');
+            elements.timerContainer.classList.add('hidden');
+
+            switch (screen) {
+                case 'welcome':
+                    elements.welcomeScreen.classList.remove('hidden');
+                    break;
+                case 'game':
+                    elements.gameScreen.classList.remove('hidden');
+                    elements.timerContainer.classList.remove('hidden');
+                    break;
+                case 'result':
+                    elements.resultScreen.classList.remove('hidden');
+                    elements.timerContainer.classList.remove('hidden');
+                    break;
+            }
+        }
+
+        /**
+         * 开始游戏
+         */
+        function startGame() {
+            const name = elements.playerName.value.trim();
+
+            if (name.length < 2) {
+                elements.playerName.classList.add('border-danger');
+                elements.playerName.focus();
+                return;
+            }
+
+            elements.playerName.classList.remove('border-danger');
+            gameState.playerName = name;
+            gameState.currentQuestion = 0;
+            gameState.questions = generateQuestions();
+            gameState.answers = [];
+
+            showScreen('game');
+            startTimer();
+            displayQuestion();
+        }
+
+        /**
+         * 显示当前题目
+         */
+        function displayQuestion() {
+            const q = gameState.questions[gameState.currentQuestion];
+            elements.question.textContent = `${q.a} × ${q.b} = ?`;
+            elements.currentQuestion.textContent = gameState.currentQuestion + 1;
+            elements.progressBar.style.width = `${(gameState.currentQuestion + 1) * 10}%`;
+            elements.answerInput.value = '';
+            elements.feedback.innerHTML = '';
+            elements.answerInput.focus();
+        }
+
+        /**
+         * 提交答案
+         */
+        function submitAnswer() {
+            const userAnswer = parseInt(elements.answerInput.value);
+            const q = gameState.questions[gameState.currentQuestion];
+            const isCorrect = userAnswer === q.answer;
+
+            gameState.answers.push({
+                question: `${q.a} × ${q.b}`,
+                correctAnswer: q.answer,
+                userAnswer: userAnswer,
+                isCorrect: isCorrect
+            });
+
+            if (isCorrect) {
+                elements.feedback.innerHTML = '<span class="text-success text-xl font-bold bounce inline-block">✓ 正确！</span>';
+                elements.answerInput.classList.add('border-success');
+            } else {
+                elements.feedback.innerHTML = `<span class="text-danger text-xl font-bold shake inline-block">✗ 错误！正确答案是 ${q.answer}</span>`;
+                elements.answerInput.classList.add('border-danger');
+            }
+
+            setTimeout(() => {
+                elements.answerInput.classList.remove('border-success', 'border-danger');
+                gameState.currentQuestion++;
+
+                if (gameState.currentQuestion < 10) {
+                    displayQuestion();
+                } else {
+                    endGame();
+                }
+            }, 1000);
+        }
+
+        /**
+         * 结束游戏并显示结果
+         */
+        async function endGame() {
+            stopTimer();
+
+            const correctCount = gameState.answers.filter(a => a.isCorrect).length;
+            const accuracy = (correctCount / 10) * 100;
+            const totalTime = gameState.elapsedTime;
+
+            showScreen('result');
+
+            elements.resultTime.textContent = totalTime.toFixed(1);
+            elements.resultAccuracy.textContent = `${accuracy}%`;
+
+            if (accuracy === 100) {
+                elements.resultEmoji.textContent = '🎉';
+                elements.resultTitle.textContent = '太棒了！满分！';
+                elements.resultMessage.textContent = '你是乘法小天才！';
+            } else if (accuracy >= 80) {
+                elements.resultEmoji.textContent = '👏';
+                elements.resultTitle.textContent = '很不错！';
+                elements.resultMessage.textContent = '继续加油！';
+            } else if (accuracy >= 60) {
+                elements.resultEmoji.textContent = '💪';
+                elements.resultTitle.textContent = '还需努力！';
+                elements.resultMessage.textContent = '多多练习会更好！';
+            } else {
+                elements.resultEmoji.textContent = '📚';
+                elements.resultTitle.textContent = '加油！';
+                elements.resultMessage.textContent = '再背背乘法口诀吧！';
+            }
+
+            elements.answerDetails.innerHTML = gameState.answers.map((a, index) => `
+                <div class="flex items-center justify-between p-2 rounded-lg ${a.isCorrect ? 'bg-green-50' : 'bg-red-50'}">
+                    <span class="font-medium">${index + 1}. ${a.question} = ${a.correctAnswer}</span>
+                    <span class="${a.isCorrect ? 'text-success' : 'text-danger'}">
+                        ${a.isCorrect ? '✓' : `✗ 你答: ${a.userAnswer}`}
+                    </span>
+                </div>
+            `).join('');
+
+            await saveRecord({
+                playerName: gameState.playerName,
+                totalTime: totalTime,
+                correctCount: correctCount,
+                accuracy: accuracy,
+                answers: gameState.answers
+            });
+
+            await loadLeaderboard();
+        }
+
+        /**
+         * 保存答题记录到 Supabase
+         * @param {Object} record - 答题记录对象
+         */
+        async function saveRecord(record) {
+            try {
+                const { error } = await supabaseClient
+                    .from('game_records')
+                    .insert([{
+                        user_name: record.playerName,
+                        total_time: record.totalTime,
+                        correct_count: record.correctCount,
+                        total_questions: 10,
+                        accuracy: record.accuracy
+                    }]);
+
+                if (error) {
+                    console.error('Supabase 插入错误:', error);
+                    throw error;
+                }
+                console.log('记录保存成功');
+            } catch (error) {
+                console.error('保存记录失败:', error);
+            }
+        }
+
+        /**
+         * 从 Supabase 加载排行榜数据
+         */
+        async function loadLeaderboard() {
+            let records = [];
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('game_records')
+                    .select('*')
+                    .order('accuracy', { ascending: false })
+                    .order('total_time', { ascending: true })
+                    .limit(20);
+
+                if (error) throw error;
+                records = data || [];
+            } catch (error) {
+                console.error('加载排行榜失败:', error);
+            }
+
+            renderLeaderboard(records);
+        }
+
+        /**
+         * 渲染排行榜
+         * @param {Array} records - 排行榜记录数组
+         */
+        function renderLeaderboard(records) {
+            if (records.length === 0) {
+                elements.leaderboard.innerHTML = `
+                    <div class="text-center text-gray-500 py-8">
+                        <div class="text-4xl mb-2">📊</div>
+                        <p>暂无数据</p>
+                    </div>
+                `;
+                renderStats([]);
+                return;
+            }
+
+            elements.leaderboard.innerHTML = records.map((r, index) => {
+                const rankEmoji = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
+                const isCurrentPlayer = r.user_name === gameState.playerName || r.playerName === gameState.playerName;
+                const bgClass = isCurrentPlayer ? 'bg-yellow-100 border-2 border-primary' : 'bg-gray-50';
+                const name = r.user_name || r.playerName;
+                const time = r.total_time || r.totalTime;
+                const accuracy = r.accuracy;
+
+                return `
+                    <div class="flex items-center justify-between p-3 rounded-xl ${bgClass} fade-in">
+                        <div class="flex items-center">
+                            <span class="text-xl mr-2 w-8">${rankEmoji}</span>
+                            <span class="font-medium ${isCurrentPlayer ? 'text-primary' : ''}">${name}</span>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-success font-bold">${accuracy}%</div>
+                            <div class="text-xs text-gray-500">${time.toFixed(1)}秒</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            renderStats(records);
+        }
+
+        /**
+         * 渲染统计信息
+         * @param {Array} records - 排行榜记录数组
+         */
+        function renderStats(records) {
+            const statsPlayers = document.getElementById('stats-players');
+            const statsAccuracy = document.getElementById('stats-accuracy');
+            const statsTime = document.getElementById('stats-time');
+
+            if (records.length === 0) {
+                statsPlayers.textContent = '0';
+                statsAccuracy.textContent = '0%';
+                statsTime.textContent = '0s';
+                return;
+            }
+
+            // 参与人数（去重）
+            const uniquePlayers = new Set(records.map(r => r.user_name || r.playerName)).size;
+
+            // 平均正确率
+            const avgAccuracy = records.reduce((sum, r) => sum + (r.accuracy || 0), 0) / records.length;
+
+            // 平均用时
+            const avgTime = records.reduce((sum, r) => sum + (r.total_time || r.totalTime || 0), 0) / records.length;
+
+            statsPlayers.textContent = uniquePlayers;
+            statsAccuracy.textContent = avgAccuracy.toFixed(1) + '%';
+            statsTime.textContent = avgTime.toFixed(1) + 's';
+        }
+
+        /**
+         * 订阅排行榜实时更新
+         */
+        function subscribeToLeaderboard() {
+            if (!supabaseClient) return;
+
+            supabaseClient
+                .channel('leaderboard-changes')
+                .on('postgres_changes', 
+                    { event: 'INSERT', schema: 'public', table: 'game_records' },
+                    () => {
+                        loadLeaderboard();
+                    }
+                )
+                .subscribe();
+        }
+
+        /**
+         * 重新开始游戏
+         */
+        function retryGame() {
+            showScreen('welcome');
+            elements.playerName.value = gameState.playerName;
+        }
+
+        /**
+         * 初始化事件监听器
+         */
+        function initEventListeners() {
+            elements.startBtn.addEventListener('click', startGame);
+            elements.submitBtn.addEventListener('click', submitAnswer);
+            elements.retryBtn.addEventListener('click', retryGame);
+
+            elements.playerName.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    startGame();
+                }
+            });
+
+            elements.answerInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    submitAnswer();
+                }
+            });
+
+            elements.answerInput.addEventListener('input', () => {
+                elements.feedback.innerHTML = '';
+            });
+        }
+
+        /**
+         * 应用初始化
+         */
+        async function init() {
+            initDatabase();
+            initEventListeners();
+            await loadLeaderboard();
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
